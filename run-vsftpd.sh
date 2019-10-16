@@ -89,12 +89,12 @@ vsftpd_pid=$!
 
 # Wait for port 21 to open
 while :; do
-    sleep 5
     &>/dev/null nc -zv localhost 21
     if [ $? -eq 0 ]; then
         echo -e "\n    vsftpd listening on port 21"
         break
     fi
+    sleep 1
 done
 
 # Re-attach to vsftpd
