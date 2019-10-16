@@ -62,7 +62,6 @@ fi
 export LOG_FILE=`grep xferlog_file /etc/vsftpd/vsftpd.conf|cut -d= -f2`
 
 # stdout server info:
-if [ ! $LOG_STDOUT ]; then
 cat << EOB
 	*************************************************
 	*                                               *
@@ -76,11 +75,28 @@ cat << EOB
 	· FTP User: $FTP_USER
 	· FTP Password: $FTP_PASS
 	· Log file: $LOG_FILE
-	· Redirect vsftpd log to STDOUT: No.
 EOB
-else
+if [ $LOG_STDOUT ]; then
     /usr/bin/ln -sf /dev/stdout $LOG_FILE
+    echo "    · Redirect vsftpd log to STDOUT: Yes."
+else
+    echo "    · Redirect vsftpd log to STDOUT: No."
 fi
 
-# Run vsftpd:
-&>/dev/null /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf
+# Run vsftpd in background
+&>/dev/null /usr/sbin/vsftpd /etc/vsftpd/vsftpd.conf &
+vsftpd_pid=$!
+
+# Wait for port 21 to open
+while :; do
+    sleep 5
+    &>/dev/null nc -zv localhost 21
+    if [ $? -eq 0 ]; then
+        echo -e "\n    vsftpd listening on port 21"
+        break
+    fi
+done
+
+# Re-attach to vsftpd
+wait $vsftpd_pid
+
